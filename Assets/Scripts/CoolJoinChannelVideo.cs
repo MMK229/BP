@@ -250,11 +250,11 @@ public class CoolJoinChannelVideo : MonoBehaviour
         RenderTexture.active = null;
         
         ExternalVideoFrame externalVideoFrame = new ExternalVideoFrame();
-        //Set the buffer type of the video frame
+        // Set the buffer type of the video frame
         externalVideoFrame.type = VIDEO_BUFFER_TYPE.VIDEO_BUFFER_RAW_DATA;
         // Set the video pixel format
         externalVideoFrame.format = VIDEO_PIXEL_FORMAT.VIDEO_PIXEL_BGRA;
-        //apply raw data you are pulling from the rectangle you created earlier to the video frame
+        // apply raw data you are pulling from the rectangle you created earlier to the video frame
         externalVideoFrame.buffer = _shareData;
         //Set the width of the video frame (in pixels)
         externalVideoFrame.stride = sceneCamera.targetTexture.width;
@@ -265,11 +265,11 @@ public class CoolJoinChannelVideo : MonoBehaviour
         externalVideoFrame.cropTop = 0;
         externalVideoFrame.cropRight = 0;
         externalVideoFrame.cropBottom = 0;
-        //Rotate the video frame (0, 90, 180, or 270)
+        // Rotate the video frame (0, 90, 180, or 270)
         externalVideoFrame.rotation = 180;
-        // increment i with the video timestamp
+        // Increment i with the video timestamp
         externalVideoFrame.timestamp = i++;
-        //Push the external video frame with the frame we just created
+        // Push the external video frame with the frame we just created
         RtcEngine.PushVideoFrame(externalVideoFrame, videoId);
     
     }
