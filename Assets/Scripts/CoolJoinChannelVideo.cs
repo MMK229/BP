@@ -24,10 +24,20 @@ public class CoolJoinChannelVideo : MonoBehaviour
     public const uint targetUID = 3394;
     private List<SecondMonitor> additionalMonitors = new List<SecondMonitor>();
     private string token;
-    private IRtcEngine RtcEngine = null;
+    public IRtcEngine RtcEngine = null;
     public GameObject _videoQualityItemPrefab;
     public Camera sceneCamera;
     uint videoId;
+    
+    // Add fields to match SecondMonitor's visual components
+    [HideInInspector]
+    public VideoSurface primaryVideoSurface;
+    
+    // Add fixed size field similar to SecondMonitor
+    public Vector2 fixedSize = new Vector2(320, 240);
+    
+    // GameObject to display the primary target UID's video
+    private GameObject primaryVideoView;
 
     public IEnumerator Start()
     {
@@ -44,9 +54,7 @@ public class CoolJoinChannelVideo : MonoBehaviour
         RtcEngine.InitEventHandler(new MyRtcEngineEventHandler(this));
 
         InitEngine();
-        //StartPreview();
         JoinChannel();
-        // You can call StartPublish() if needed
     }
 
     public void InitEngine()
@@ -99,16 +107,10 @@ public class CoolJoinChannelVideo : MonoBehaviour
 
         // Use your desired channel name; this example uses a hard-coded string.
         RtcEngine.JoinChannel(token, "7d72365eb983485397e3e3f9d460bdda", 0, options);
-
-        // For local preview, create a view for the local user (UID 0)
-        //GameObject localNode = MakeVideoView(0);
-        //CreateLocalVideoCallQualityPanel(localNode);
     }
 
     public void StartPreview()
     {
-        GameObject localNode = MakeVideoView(0);
-        CreateLocalVideoCallQualityPanel(localNode);
         RtcEngine.StartPreview();
     }
 
@@ -118,6 +120,7 @@ public class CoolJoinChannelVideo : MonoBehaviour
         RtcEngine.StopPreview();
     }
 
+    // Destroy any existing video view for a UID
     internal static void DestroyVideoView(uint uid)
     {
         GameObject go = GameObject.Find(uid.ToString());
@@ -127,90 +130,95 @@ public class CoolJoinChannelVideo : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Create the video view only for the local user (uid == 0) or the target remote user (targetUID)
-    /// </summary>
-    /// <param name="uid">UID of the user</param>
-    /// <param name="channelId">Channel name</param>
-    internal static GameObject MakeVideoView(uint uid, string channelId = "")
+    // Create a video view with styling like SecondMonitor for a specific UID
+    internal GameObject CreateVideoViewForUID(uint uid, string channelId = "")
     {
-        // Only allow local (uid == 0) or remote with targetUID to show video.
-        if (uid != targetUID && uid != 0)
-            return null;
-
-        GameObject go = GameObject.Find(uid.ToString());
-        if (go != null)
+        // Destroy any existing view for this UID
+        DestroyVideoView(uid);
+        
+        // Create a new GameObject for this UID
+        GameObject go = new GameObject(uid.ToString());
+        
+        // Get or add a RawImage component
+        RawImage rawImage = go.AddComponent<RawImage>();
+        
+        // Get or add a RectTransform and set its fixed size
+        RectTransform rectTransform = go.GetComponent<RectTransform>();
+        if (rectTransform != null)
         {
-            return go; // Reuse the existing GameObject
+            rectTransform.sizeDelta = fixedSize;
         }
-
-        // Create an image surface to render video
-        VideoSurface videoSurface = MakeImageSurface(uid.ToString());
-        if (videoSurface == null) 
-            return null;
-
-        // Assign for local or remote user
-        if (uid == 0)
-        {
-            videoSurface.SetForUser(uid, channelId);
-        }
-        else
-        {
-            videoSurface.SetForUser(uid, channelId, VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
-        }
-
-        videoSurface.OnTextureSizeModify += (int width, int height) =>
-        {
-            RectTransform rect = videoSurface.GetComponent<RectTransform>();
-            if (rect)
-            {
-                // If rendered in RawImage, set size accordingly.
-                rect.sizeDelta = new Vector2(width / 2, height / 2);
-                rect.localScale = Vector3.one;
-            }
-            else
-            {
-                // If rendered in MeshRenderer, adjust scale.
-                float scale = (float)height / (float)width;
-                videoSurface.transform.localScale = new Vector3(-1, 1, scale);
-            }
-            Debug.Log("OnTextureSizeModify: " + width + " " + height);
-        };
-
-        videoSurface.SetEnable(true);
-        return videoSurface.gameObject;
-    }
-
-    private static VideoSurface MakeImageSurface(string goName)
-    {
-        GameObject go = new GameObject();
-        go.name = goName;
-
-        // Add RawImage component to render the video
-        go.AddComponent<RawImage>();
-        // Optional: make the object draggable (if needed)
+        
+        // Add AspectRatioFitter to maintain aspect ratio
+        AspectRatioFitter aspectFitter = go.AddComponent<AspectRatioFitter>();
+        aspectFitter.aspectMode = AspectRatioFitter.AspectMode.FitInParent;
+        aspectFitter.aspectRatio = fixedSize.x / fixedSize.y;
+        
+        // Add the VideoSurface component
+        VideoSurface videoSurface = go.AddComponent<VideoSurface>();
+        
+        // Add draggable component
         go.AddComponent<UIElementDrag>();
-
+        
         // Find the canvas in the scene to attach this video view
         GameObject canvas = GameObject.Find("VideoCanvas");
         if (canvas != null)
         {
             go.transform.SetParent(canvas.transform);
-            Debug.Log("Attached video view to canvas");
+            Debug.Log($"Attached video view for UID {uid} to canvas");
         }
-        else
+        
+        // Configure the video surface
+        if (uid == 0) // Local user
         {
-            Debug.Log("Canvas not found");
+            videoSurface.SetForUser(uid, channelId);
         }
+        else // Remote user
+        {
+            videoSurface.SetForUser(uid, channelId, VIDEO_SOURCE_TYPE.VIDEO_SOURCE_REMOTE);
+        }
+        
+        // Override the OnTextureSizeModify to enforce our fixed size
+        videoSurface.OnTextureSizeModify += (int width, int height) =>
+        {
+            if (rectTransform != null)
+            {
+                // Force back to our fixed size
+                rectTransform.sizeDelta = fixedSize;
+                rectTransform.localScale = Vector3.one;
+                
+                // Update aspect ratio if needed
+                if (aspectFitter != null && width > 0 && height > 0)
+                {
+                    aspectFitter.aspectRatio = fixedSize.x / fixedSize.y;
+                }
+                
+                Debug.Log($"Video view for UID {uid} - Size modified: {width}x{height}, maintaining fixed size: {fixedSize.x}x{fixedSize.y}");
+            }
+        };
+        
+        // Enable the video surface
+        videoSurface.SetEnable(true);
+        
+        // Store reference if this is the primary video view
+        if (uid == targetUID)
+        {
+            primaryVideoView = go;
+            primaryVideoSurface = videoSurface;
+        }
+        
+        return go;
+    }
 
-        // Set up transform defaults
-        go.transform.Rotate(0f, 0f, 180f);
-        go.transform.localPosition = Vector3.zero;
-        go.transform.localScale = new Vector3(2f, 3f, 1f);
-
-        // Add VideoSurface component for Agora
-        VideoSurface videoSurface = go.AddComponent<VideoSurface>();
-        return videoSurface;
+    // For backward compatibility - redirect to the new method
+    internal static GameObject MakeVideoView(uint uid, string channelId = "")
+    {
+        CoolJoinChannelVideo instance = FindObjectOfType<CoolJoinChannelVideo>();
+        if (instance != null)
+        {
+            return instance.CreateVideoViewForUID(uid, channelId);
+        }
+        return null;
     }
 
     public void CreateLocalVideoCallQualityPanel(GameObject parent)
@@ -266,7 +274,7 @@ public class CoolJoinChannelVideo : MonoBehaviour
         }
         nativeByteArray.CopyTo(_shareData);
         RenderTexture.active = null;
-
+        
         ExternalVideoFrame externalVideoFrame = new ExternalVideoFrame();
         externalVideoFrame.type = VIDEO_BUFFER_TYPE.VIDEO_BUFFER_RAW_DATA;
         externalVideoFrame.format = VIDEO_PIXEL_FORMAT.VIDEO_PIXEL_BGRA;
@@ -279,8 +287,23 @@ public class CoolJoinChannelVideo : MonoBehaviour
         externalVideoFrame.cropBottom = 0;
         externalVideoFrame.rotation = 180;
         externalVideoFrame.timestamp = i++;
-
         RtcEngine.PushVideoFrame(externalVideoFrame, videoId);
+        Destroy(texture);
+    }
+    
+    // Add LateUpdate to ensure sizing is maintained
+    void LateUpdate()
+    {
+        // Ensure primary video view maintains its fixed size
+        if (primaryVideoView != null)
+        {
+            RectTransform rectTransform = primaryVideoView.GetComponent<RectTransform>();
+            if (rectTransform != null && rectTransform.sizeDelta != fixedSize)
+            {
+                rectTransform.sizeDelta = fixedSize;
+                rectTransform.localScale = Vector3.one;
+            }
+        }
     }
 
     public void OnDisable()
@@ -336,8 +359,6 @@ public class CoolJoinChannelVideo : MonoBehaviour
             Debug.LogError($"Video surface not found on monitor for UID {monitor.targetUID}");
         }
     }
-    
-
 
     // Nested event handler class to process remote user events.
     internal class MyRtcEngineEventHandler : IRtcEngineEventHandler
@@ -353,7 +374,7 @@ public class CoolJoinChannelVideo : MonoBehaviour
         {
             Debug.Log("Remote user went offline, UID: " + uid);
     
-            // Handle the primary target UID as before
+            // Handle the primary target UID
             if (uid == targetUID)
             {
                 DestroyVideoView(uid);
@@ -374,10 +395,10 @@ public class CoolJoinChannelVideo : MonoBehaviour
         {
             Debug.Log("Remote user joined with UID: " + uid);
     
-            // Handle the primary target UID as before
+            // Handle the primary target UID
             if (uid == targetUID)
             {
-                MakeVideoView(uid, connection.channelId);
+                owner.CreateVideoViewForUID(uid, connection.channelId);
             }
     
             // Check if this UID matches any of our additional monitors
