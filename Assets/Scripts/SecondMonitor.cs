@@ -45,7 +45,7 @@ public class SecondMonitor : MonoBehaviour
         {
             rawImage = gameObject.AddComponent<RawImage>();
         }
-        
+        rawImage.color = Color.clear;
         // Get or add a RectTransform and set its fixed size
         rectTransform = GetComponent<RectTransform>();
         if (rectTransform != null)
@@ -64,12 +64,6 @@ public class SecondMonitor : MonoBehaviour
         
         // Add the VideoSurface component
         videoSurface = gameObject.AddComponent<VideoSurface>();
-        
-        // Optional: Add draggable component
-        if (GetComponent<UIElementDrag>() == null)
-        {
-            gameObject.AddComponent<UIElementDrag>();
-        }
         
         // Enable the video surface
         videoSurface.SetEnable(true);
