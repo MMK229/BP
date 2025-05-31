@@ -6,13 +6,11 @@ using io.agora.rtc.demo;
 
 public class SecondMonitor : MonoBehaviour
 {
-    // The target UID this monitor should display
+    // UID ktoré bude spojené s týmto monitorom (nastaviť v Unity pre každý monitor object)
     public uint targetUID = 3395;
     
-    // Control the exact size of the monitor
     public Vector2 fixedSize = new Vector2(320, 240);
     
-    // Reference to the video surface component
     [HideInInspector]
     public VideoSurface videoSurface;
     
@@ -22,38 +20,44 @@ public class SecondMonitor : MonoBehaviour
     
     void Awake()
     {
-        // Set up components
         SetupComponents();
         
-        // Register this monitor with the main controller
-        CoolJoinChannelVideo mainController = FindObjectOfType<CoolJoinChannelVideo>();
+        // Registrujeme tento monitor v JoinChannelVideo.cs
+        JoinChannelVideo mainController = FindObjectOfType<JoinChannelVideo>();
         if (mainController != null)
         {
             mainController.RegisterAdditionalMonitor(this);
         }
         else
         {
-            Debug.LogError("CoolJoinChannelVideo not found in scene. Make sure it exists before this monitor.");
+            Debug.LogError("JoinChannelVideo not found in scene. Please check its existence.");
         }
     }
     
     private void SetupComponents()
     {
-        // Get or add a RawImage component
         rawImage = GetComponent<RawImage>();
         if (rawImage == null)
         {
             rawImage = gameObject.AddComponent<RawImage>();
         }
+        
+        // Keď nikto nie je pripojený, tak tento objekt nie je vidieť
         rawImage.color = Color.clear;
-        // Get or add a RectTransform and set its fixed size
+        if (rawImage.texture == null)
+        {
+            rawImage.texture = new Texture2D(1, 1);
+        }
+        
+        // Nastavenie fixnej veľkosti
         rectTransform = GetComponent<RectTransform>();
         if (rectTransform != null)
         {
             rectTransform.sizeDelta = fixedSize;
+            rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            rectTransform.pivot = new Vector2(0.5f, 0.5f);
         }
-        
-        // Add AspectRatioFitter to maintain aspect ratio
         aspectFitter = GetComponent<AspectRatioFitter>();
         if (aspectFitter == null)
         {
@@ -62,36 +66,31 @@ public class SecondMonitor : MonoBehaviour
             aspectFitter.aspectRatio = fixedSize.x / fixedSize.y;
         }
         
-        // Add the VideoSurface component
-        videoSurface = gameObject.AddComponent<VideoSurface>();
-        
-        // Enable the video surface
+        // Pridávame VideoSurface a nastavujeme aby nemenil veľkosť nášho monitoru
+        videoSurface = GetComponent<VideoSurface>();
+        if (videoSurface == null)
+        {
+            videoSurface = gameObject.AddComponent<VideoSurface>();
+        }
         videoSurface.SetEnable(true);
-        
-        // Override the OnTextureSizeModify to enforce our fixed size
-        videoSurface.OnTextureSizeModify += (int width, int height) =>
+        videoSurface.OnTextureSizeModify += (width, height) =>
         {
             if (rectTransform != null)
             {
-                // Force back to our fixed size
                 rectTransform.sizeDelta = fixedSize;
                 rectTransform.localScale = Vector3.one;
-                
-                // Update aspect ratio if needed
                 if (aspectFitter != null && width > 0 && height > 0)
                 {
-                    aspectFitter.aspectRatio = fixedSize.x / fixedSize.y;
+                    aspectFitter.aspectRatio = (float)width / height;
                 }
-                
                 Debug.Log($"Monitor for UID {targetUID} - Size modified: {width}x{height}, maintaining fixed size: {fixedSize.x}x{fixedSize.y}");
             }
         };
     }
     
-    // Called after every frame update to ensure size remains fixed
+    // Aby veľkosť zostala rovnaká
     void LateUpdate()
     {
-        // Ensure our fixed size is maintained
         if (rectTransform != null)
         {
             if (rectTransform.sizeDelta != fixedSize || rectTransform.localScale != Vector3.one)
@@ -102,27 +101,26 @@ public class SecondMonitor : MonoBehaviour
         }
     }
     
-    // Method to be called when the user leaves
+    // Keď user odíde
     public void OnUserLeft()
     {
         if (rawImage != null)
         {
-            // Clear the texture by disabling the raw image
-            rawImage.enabled = false;
+            rawImage.color = new Color(0.2f, 0.2f, 0.2f, 1f);
         }
         
         Debug.Log($"User {targetUID} left - cleared monitor display");
     }
     
-    // Method to be called when the user joins/returns
+    // Keď sa user pripojí
     public void OnUserJoined()
     {
+        // Nastavíme rawImage farbu na white, aby bola textúra viditeľná po pripojení, a len vtedy, keď je niekto
+        // pripojený na tento konkrétny monitor.
         if (rawImage != null)
         {
-            rawImage.enabled = true;
+            rawImage.color = Color.white;
         }
-        
-        // Force size to our fixed size again
         if (rectTransform != null)
         {
             rectTransform.sizeDelta = fixedSize;
@@ -134,8 +132,7 @@ public class SecondMonitor : MonoBehaviour
     
     void OnDestroy()
     {
-        // Unregister from the main controller
-        CoolJoinChannelVideo mainController = FindObjectOfType<CoolJoinChannelVideo>();
+        JoinChannelVideo mainController = FindObjectOfType<JoinChannelVideo>();
         if (mainController != null)
         {
             mainController.UnregisterAdditionalMonitor(this);

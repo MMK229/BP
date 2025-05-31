@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
-using UnityEngine.UI;
 using Agora.Rtc;
+using Mirror;
+using UnityEngine.XR.Interaction.Toolkit;
 
-public class JukeboxManager : MonoBehaviour
+public class JukeboxManager : NetworkBehaviour
 {
     [System.Serializable]
     public class MusicTrack
@@ -21,336 +22,384 @@ public class JukeboxManager : MonoBehaviour
     public List<MusicTrack> availableTracks = new List<MusicTrack>();
     
     [Range(0, 100)]
-    public int musicVolume = 50;
+    public int musicVolume = 50; // This will act as the base for publish/playout volume
     
     [Range(0, 100)]
     [Tooltip("How loud the music is for remote users")]
-    public int publishVolume = 50;
+    public int publishVolume = 50; // Use this directly for Agora's publish volume
     
     [Range(0, 100)]
-    [Tooltip("How loud the music is for local user")]
-    public int playoutVolume = 50;
+    [Tooltip("How loud the music is for local user (via Agora)")]
+    public int playoutVolume = 50; // Use this directly for Agora's playout volume
     
     [Header("References")]
-    public AudioSource localAudioSource;
+    public AudioSource localAudioSource; // Keep for clip assignment, but Agora will handle local playback via mixing
+    public UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable xrInteractable; // XR Interaction component
     
-    // UI Elements
-    [Header("UI Elements")]
-    public Dropdown trackSelector;
-    public Slider volumeSlider;
-    public Button playButton;
-    public Button stopButton;
+    // Network synchronized variables
+    [SyncVar(hook = nameof(OnTrackIndexChanged))]
+    private int _networkedTrackIndex = -1; // -1 means OFF, 0 to N-1 are tracks
+    
+    [SyncVar(hook = nameof(OnPlayingStateChanged))]
+    private bool _networkedIsPlaying = false;
     
     // Private fields
     private IRtcEngine _rtcEngine;
-    private CoolJoinChannelVideo _mainController;
-    private int _currentTrackIndex = -1;
-    private bool _isPlaying = false;
-    
+    private JoinChannelVideo _mainController;
+    private bool _isInitialized = false;
+
+    // Coroutine to wait for the RtcEngine to be ready from JoinChannelVideo
     private IEnumerator InitializeAfterEngineReady()
     {
         // Wait until CoolJoinChannelVideo initializes RtcEngine
-        _mainController = FindObjectOfType<CoolJoinChannelVideo>();
+        _mainController = FindObjectOfType<JoinChannelVideo>();
     
         // Wait until we have a valid RtcEngine
         int timeoutCounter = 0;
         while (_mainController == null || _mainController.RtcEngine == null)
         {
             timeoutCounter++;
-            if (timeoutCounter > 100) // Timeout after about 10 seconds
+            if (timeoutCounter > 1000) // Timeout after about 100 seconds (1000 * 0.1s)
             {
-                Debug.LogError("Timed out waiting for RtcEngine to initialize.");
+                Debug.LogError("JukeboxManager: Timed out waiting for RtcEngine to initialize.");
                 yield break;
             }
         
-            Debug.Log($"Waiting for RtcEngine initialization... Attempt {timeoutCounter}");
-            _mainController = FindObjectOfType<CoolJoinChannelVideo>();
+            _mainController = FindObjectOfType<JoinChannelVideo>();
             yield return new WaitForSeconds(0.1f); // Wait a bit before checking again
         }
     
         _rtcEngine = _mainController.RtcEngine;
-        Debug.Log("Successfully got RtcEngine from CoolJoinChannelVideo");
-    
-        // Set default track if available
-        if (availableTracks.Count > 0)
+        Debug.Log("JukeboxManager: Successfully got RtcEngine from JoinChannelVideo.");
+        
+        _isInitialized = true;
+        
+        // If we're not the server, sync to current server state
+        if (!isServer)
         {
-            _currentTrackIndex = 0;
-            Debug.Log($"Setting default track to index 0: {availableTracks[0].trackName}");
+            SyncToNetworkedState();
         }
     }
     
     void Start()
     {
+        // Start the coroutine to wait for the Agora engine
         StartCoroutine(InitializeAfterEngineReady());
         
-        // Find main controller and get RtcEngine
-        _mainController = FindObjectOfType<CoolJoinChannelVideo>();
-        if (_mainController != null)
-        {
-            _rtcEngine = _mainController.RtcEngine;
-            if (_rtcEngine == null)
-            {
-                Debug.LogError("RtcEngine is null in CoolJoinChannelVideo.");
-            }
-            else
-            {
-                Debug.Log("RtcEngine successfully initialized.");
-            }
-        }
-        else
-        {
-            Debug.LogError("CoolJoinChannelVideo component not found in the scene.");
-            return;
-        }
-    
         // Create local audio source if not assigned
         if (localAudioSource == null)
         {
             localAudioSource = gameObject.AddComponent<AudioSource>();
             localAudioSource.playOnAwake = false;
-            localAudioSource.loop = true;
+            localAudioSource.loop = true; // Music tracks usually loop
         }
-    
-        // Set up UI if available
-        SetupUI();
-    
-        // Set default track if available
-        if (availableTracks.Count > 0 && _currentTrackIndex < 0)
-        {
-            _currentTrackIndex = 0;
-            Debug.Log($"Setting default track to index 0: {availableTracks[0].trackName}");
-        }
-        else if (availableTracks.Count == 0)
-        {
-            Debug.LogWarning("No music tracks available in the Jukebox.");
-        }
+        
+        // Setup XR Interaction
+        SetupXRInteraction();
     }
     
-    private void SetupUI()
+    void SetupXRInteraction()
     {
-        // Set up track dropdown
-        if (trackSelector != null)
+        // Get or create XRSimpleInteractable component
+        if (xrInteractable == null)
         {
-            trackSelector.ClearOptions();
-            List<Dropdown.OptionData> options = new List<Dropdown.OptionData>();
-            
-            foreach (var track in availableTracks)
+            xrInteractable = GetComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
+            if (xrInteractable == null)
             {
-                options.Add(new Dropdown.OptionData(track.trackName));
-            }
-            
-            trackSelector.AddOptions(options);
-            trackSelector.onValueChanged.AddListener(OnTrackSelected);
-        }
-        
-        // Set up volume slider
-        if (volumeSlider != null)
-        {
-            volumeSlider.value = musicVolume;
-            volumeSlider.onValueChanged.AddListener(OnVolumeChanged);
-        }
-        
-        // Set up buttons
-        if (playButton != null)
-        {
-            playButton.onClick.AddListener(PlayMusic);
-        }
-        
-        if (stopButton != null)
-        {
-            stopButton.onClick.AddListener(StopMusic);
-        }
-    }
-    
-    public void OnTrackSelected(int trackIndex)
-    {
-        if (trackIndex >= 0 && trackIndex < availableTracks.Count)
-        {
-            _currentTrackIndex = trackIndex;
-            
-            // If we're currently playing, restart with the new track
-            if (_isPlaying)
-            {
-                StopMusic();
-                PlayMusic();
+                xrInteractable = gameObject.AddComponent<UnityEngine.XR.Interaction.Toolkit.Interactables.XRSimpleInteractable>();
             }
         }
-    }
-    
-    public void OnVolumeChanged(float volume)
-    {
-        musicVolume = Mathf.RoundToInt(volume);
         
-        // Update local playback volume
-        if (localAudioSource != null)
+        // Ensure we have a collider for XR interaction
+        Collider col = GetComponent<Collider>();
+        if (col == null)
         {
-            localAudioSource.volume = musicVolume / 100f;
+            // Add a box collider if none exists
+            BoxCollider boxCol = gameObject.AddComponent<BoxCollider>();
+            boxCol.isTrigger = true;
+            Debug.Log("JukeboxManager: Added BoxCollider for XR interaction");
         }
         
-        // Update remote playback volumes
-        if (_rtcEngine != null && _isPlaying)
+        // Subscribe to XR interaction events
+        xrInteractable.selectEntered.AddListener(OnXRSelectEntered);
+        xrInteractable.activated.AddListener(OnXRActivated);
+        
+        Debug.Log("JukeboxManager: XR Interaction setup complete");
+    }
+    
+    // Called when XR controller selects (grabs) the jukebox
+    void OnXRSelectEntered(SelectEnterEventArgs args)
+    {
+        Debug.Log($"Jukebox selected by: {args.interactorObject.transform.name}");
+        OnJukeboxTap();
+    }
+    
+    // Called when XR controller activates (trigger press) while selecting
+    void OnXRActivated(ActivateEventArgs args)
+    {
+        Debug.Log($"Jukebox activated by: {args.interactorObject.transform.name}");
+        OnJukeboxTap();
+    }
+    
+    // This method will be called by your VR interaction system (e.g., on pointer click, on gaze select, etc.)
+    public void OnJukeboxTap()
+    {
+        Debug.Log("Jukebox Tapped!");
+        
+        // Send command to server to handle the tap
+        CmdHandleJukeboxTap();
+    }
+
+    [Command(requiresAuthority = false)]
+    void CmdHandleJukeboxTap()
+    {
+        Debug.Log("Server: Handling jukebox tap command");
+        
+        // Only server processes the actual logic
+        if (!isServer) return;
+        
+        // Stop current music if playing to transition cleanly
+        if (_networkedIsPlaying)
         {
+            ServerStopMusic();
+        }
+        
+        // Cycle to the next state (OFF -> Song 1 -> Song 2 -> ... -> OFF)
+        _networkedTrackIndex++;
+        if (_networkedTrackIndex >= availableTracks.Count)
+        {
+            _networkedTrackIndex = -1; // Cycle back to OFF
+        }
+
+        if (_networkedTrackIndex == -1)
+        {
+            Debug.Log("Server: Cycling to OFF state.");
+            _networkedIsPlaying = false;
+        }
+        else
+        {
+            Debug.Log($"Server: Cycling to track index {_networkedTrackIndex}: {availableTracks[_networkedTrackIndex].trackName}");
+            ServerPlayMusic();
+        }
+    }
+
+    // Server-side music control
+    [Server]
+    void ServerPlayMusic()
+    {
+        Debug.Log("Server: PlayMusic called.");
+        
+        if (_networkedTrackIndex < 0 || _networkedTrackIndex >= availableTracks.Count)
+        {
+            Debug.LogError($"Server: Cannot play music: Invalid track index {_networkedTrackIndex}. Available tracks: {availableTracks.Count}.");
+            return;
+        }
+
+        _networkedIsPlaying = true;
+        
+        // The actual playback will be handled by the SyncVar hooks on all clients
+    }
+
+    [Server]
+    void ServerStopMusic()
+    {
+        Debug.Log("Server: StopMusic called.");
+        _networkedIsPlaying = false;
+    }
+
+    // SyncVar hook - called on all clients when track index changes
+    void OnTrackIndexChanged(int oldIndex, int newIndex)
+    {
+        Debug.Log($"Client: Track index changed from {oldIndex} to {newIndex}");
+        
+        if (!_isInitialized)
+        {
+            // If not initialized yet, we'll sync later
+            return;
+        }
+        
+        // Update local state and handle playback
+        if (newIndex == -1 || !_networkedIsPlaying)
+        {
+            ClientStopMusic();
+        }
+        else if (_networkedIsPlaying)
+        {
+            ClientPlayMusic(newIndex);
+        }
+    }
+
+    // SyncVar hook - called on all clients when playing state changes
+    void OnPlayingStateChanged(bool oldState, bool newState)
+    {
+        Debug.Log($"Client: Playing state changed from {oldState} to {newState}");
+        
+        if (!_isInitialized)
+        {
+            // If not initialized yet, we'll sync later
+            return;
+        }
+        
+        if (newState && _networkedTrackIndex >= 0)
+        {
+            ClientPlayMusic(_networkedTrackIndex);
+        }
+        else
+        {
+            ClientStopMusic();
+        }
+    }
+
+    // Client-side music playback (called via SyncVar hooks)
+    void ClientPlayMusic(int trackIndex)
+    {
+        Debug.Log($"Client: Playing music for track index {trackIndex}");
+        
+        if (_rtcEngine == null)
+        {
+            Debug.LogError("Client: Cannot play music: RTC Engine is not initialized.");
+            return;
+        }
+        
+        if (trackIndex < 0 || trackIndex >= availableTracks.Count)
+        {
+            Debug.LogError($"Client: Cannot play music: Invalid track index {trackIndex}. Available tracks: {availableTracks.Count}.");
+            return;
+        }
+
+        MusicTrack track = availableTracks[trackIndex];
+
+        // Ensure any previously playing music is stopped cleanly
+        ClientStopMusic(); 
+        
+        // Assign the AudioClip to the local AudioSource for reference/potential future use,
+        // but Agora will handle the actual local playback via audio mixing loopback.
+        if (localAudioSource != null && track.audioClip != null)
+        {
+            localAudioSource.clip = track.audioClip;
+            // localAudioSource.Play() is REMOVED to avoid double audio when Agora's loopback is active.
+            Debug.Log($"Client: Local AudioSource clip set to: {track.trackName}");
+        }
+        else
+        {
+            Debug.LogWarning("Client: Local AudioSource or AudioClip is null, local clip assignment skipped.");
+        }
+
+        // Stream through Agora for both remote users AND local user (loopback: true)
+        if (!string.IsNullOrEmpty(track.audioFilePath))
+        {
+            string fullPath = Path.Combine(Application.streamingAssetsPath, track.audioFilePath);
+            
+            if (!File.Exists(fullPath))
+            {
+                Debug.LogError($"Client: Audio file not found at path: {fullPath}");
+                return;
+            }
+            
+            Debug.Log($"Client: Starting Agora audio mixing with file: {fullPath}");
+            
+            int result = _rtcEngine.StartAudioMixing(
+                filePath: fullPath,
+                loopback: true,   // true = send to remote users AND play locally
+                cycle: -1          // -1 = loop indefinitely
+            );
+
+            if (result != 0)
+            {
+                Debug.LogError($"Client: Failed to start Agora audio mixing with error code: {result}");
+                return;
+            }
+
+            // Adjust volumes for both publishing (remote) and playout (local via Agora)
             _rtcEngine.AdjustAudioMixingPublishVolume(publishVolume);
             _rtcEngine.AdjustAudioMixingPlayoutVolume(playoutVolume);
+            
+            Debug.Log($"Client: Started remote streaming and local Agora playback of: {track.trackName}");
         }
-    }
-    
-public void PlayMusic()
-{
-    Debug.Log("PlayMusic called");
-    
-    if (_rtcEngine == null)
-    {
-        Debug.LogError("Cannot play music: RTC Engine is not initialized");
-        return;
-    }
-    
-    if (_currentTrackIndex < 0 || _currentTrackIndex >= availableTracks.Count)
-    {
-        Debug.LogError($"Cannot play music: Invalid track index {_currentTrackIndex}. Available tracks: {availableTracks.Count}");
-        return;
-    }
-
-    MusicTrack track = availableTracks[_currentTrackIndex];
-
-    // Stop any currently playing music
-    StopMusic();
-    
-    // For Unity application users - play locally through AudioSource
-    if (localAudioSource != null && track.audioClip != null)
-    {
-        localAudioSource.clip = track.audioClip;
-        localAudioSource.volume = musicVolume / 100f;
-        localAudioSource.Play();
-        Debug.Log($"Started local playback of: {track.trackName}");
-    }
-    else
-    {
-        Debug.LogWarning("Local AudioSource or AudioClip is null");
-    }
-
-    // For web app users - stream through Agora
-    if (!string.IsNullOrEmpty(track.audioFilePath))
-    {
-        string fullPath = Path.Combine(Application.streamingAssetsPath, track.audioFilePath);
-        
-        if (!File.Exists(fullPath))
+        else
         {
-            Debug.LogError($"Audio file not found at path: {fullPath}");
-            return;
+            Debug.LogWarning("Client: Audio file path is empty, cannot play for remote users or local Agora playback.");
         }
-        
-        Debug.Log($"Starting Agora audio mixing with file: {fullPath}");
-        
-        int result = _rtcEngine.StartAudioMixing(
-            filePath: fullPath,
-            loopback: false,   // false = only send to remote users, not local
-            cycle: -1          // -1 = loop indefinitely
-        );
-
-        if (result != 0)
-        {
-            Debug.LogError($"Failed to start Agora audio mixing with error code: {result}");
-            return;
-        }
-
-        // Only set publish volume since we don't want local playback through Agora
-        _rtcEngine.AdjustAudioMixingPublishVolume(publishVolume);
-        // Set playout volume to 0 to ensure we don't hear double audio in Unity
-        _rtcEngine.AdjustAudioMixingPlayoutVolume(0);
-        
-        Debug.Log($"Started remote streaming of: {track.trackName}");
-    }
-    else
-    {
-        Debug.LogWarning("Audio file path is empty, cannot play for remote users");
     }
 
-    _isPlaying = true;
-    UpdatePlaybackUI();
-}
-
-    
-    public void StopMusic()
+    void ClientStopMusic()
     {
-        // Stop local playback
+        Debug.Log("Client: Stopping music");
+        
+        // Stop local playback if it was somehow started directly by AudioSource
         if (localAudioSource != null && localAudioSource.isPlaying)
         {
             localAudioSource.Stop();
+            Debug.Log("Client: Stopped local AudioSource playback.");
         }
         
-        // Stop remote playback via Agora
-        if (_rtcEngine != null && _isPlaying)
+        // Stop remote and local playback via Agora audio mixing
+        if (_rtcEngine != null)
         {
             _rtcEngine.StopAudioMixing();
+            Debug.Log("Client: Stopped Agora audio mixing.");
         }
-        
-        _isPlaying = false;
-        Debug.Log("Stopped music playback");
-        
-        // Update UI
-        UpdatePlaybackUI();
-    }
-    
-    private void UpdatePlaybackUI()
-    {
-        if (playButton != null)
-        {
-            playButton.interactable = !_isPlaying;
-        }
-        
-        if (stopButton != null)
-        {
-            stopButton.interactable = _isPlaying;
-        }
-    }
-    
-void Update()
-{
-    if (Input.anyKeyDown)
-    {
-        Debug.Log("Some key pressed.");
     }
 
-    for (int i = 0; i < 9; i++)
+    // Sync to current networked state (called when client initializes after server)
+    void SyncToNetworkedState()
     {
-        if (Input.GetKeyDown(KeyCode.Alpha1 + i) || Input.GetKeyDown(KeyCode.Keypad1 + i))
+        Debug.Log($"Client: Syncing to networked state - Track: {_networkedTrackIndex}, Playing: {_networkedIsPlaying}");
+        
+        if (_networkedIsPlaying && _networkedTrackIndex >= 0)
         {
-            int index = i;
-            Debug.Log($"Key {index + 1} pressed.");
-            
-            if (index < availableTracks.Count)
+            ClientPlayMusic(_networkedTrackIndex);
+        }
+        else
+        {
+            ClientStopMusic();
+        }
+    }
+    
+    // Public methods for external control (optional)
+    public void ForceStop()
+    {
+        if (isServer)
+        {
+            ServerStopMusic();
+        }
+    }
+    
+    public void SetTrack(int trackIndex)
+    {
+        if (isServer && trackIndex >= -1 && trackIndex < availableTracks.Count)
+        {
+            if (_networkedIsPlaying)
             {
-                Debug.Log($"Valid track index {index}: {availableTracks[index].trackName}");
-                OnTrackSelected(index);
-                PlayMusic(); // Explicitly play after selecting
+                ServerStopMusic();
             }
-            else
+            
+            _networkedTrackIndex = trackIndex;
+            
+            if (trackIndex >= 0)
             {
-                Debug.LogWarning($"Track index {index} is out of range. Only {availableTracks.Count} tracks available.");
+                ServerPlayMusic();
             }
         }
     }
     
-    // Add space key as play/pause toggle
-    if (Input.GetKeyDown(KeyCode.Space))
-    {
-        if (_isPlaying)
-        {
-            Debug.Log("Space pressed: Stopping music");
-            StopMusic();
-        }
-        else if (_currentTrackIndex >= 0)
-        {
-            Debug.Log("Space pressed: Playing music");
-            PlayMusic();
-        }
-    }
-}
+    // Properties for UI/debugging
+    public int CurrentTrackIndex => _networkedTrackIndex;
+    public bool IsPlaying => _networkedIsPlaying;
+    public string CurrentTrackName => (_networkedTrackIndex >= 0 && _networkedTrackIndex < availableTracks.Count) 
+        ? availableTracks[_networkedTrackIndex].trackName 
+        : "OFF";
     
     // Clean up when destroyed
     void OnDestroy()
     {
-        StopMusic();
+        ClientStopMusic();
+        
+        // Unsubscribe from XR events to prevent memory leaks
+        if (xrInteractable != null)
+        {
+            xrInteractable.selectEntered.RemoveListener(OnXRSelectEntered);
+            xrInteractable.activated.RemoveListener(OnXRActivated);
+        }
     }
 }
