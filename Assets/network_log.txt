@@ -1,0 +1,128 @@
+=== Network Log Start ===
+Disabling UnityEngine.Transform on XR Origin (XR Rig) Variant(Clone)
+Disabling Unity.XR.CoreUtils.XROrigin on XR Origin (XR Rig) Variant(Clone)
+Disabling UnityEngine.CharacterController on XR Origin (XR Rig) Variant(Clone)
+Disabling UnityEngine.XR.Interaction.Toolkit.Inputs.InputActionManager on XR Origin (XR Rig) Variant(Clone)
+Disabling UnityEngine.XR.Interaction.Toolkit.Inputs.XRInputModalityManager on XR Origin (XR Rig) Variant(Clone)
+Disabling UnityEngine.XR.Interaction.Toolkit.Gaze.XRGazeAssistance on XR Origin (XR Rig) Variant(Clone)
+Disabling Network on XR Origin (XR Rig) Variant(Clone)
+Disabling UnityEngine.Transform on Camera Offset
+Disabling UnityEngine.Transform on Main Camera
+Disabling UnityEngine.AudioListener on Main Camera
+Disabling UnityEngine.InputSystem.XR.TrackedPoseDriver on Main Camera
+Disabling UnityEngine.Rendering.Universal.UniversalAdditionalCameraData on Main Camera
+Disabling UnityEngine.Transform on GameObject
+Disabling UnityEngine.Transform on Left Controller Teleport Stabilized Origin
+Disabling UnityEngine.XR.Interaction.Toolkit.Inputs.XRTransformStabilizer on Left Controller Teleport Stabilized Origin
+Disabling UnityEngine.Transform on Left Controller Stabilized Attach
+Disabling UnityEngine.Transform on Right Controller Teleport Stabilized Origin
+Disabling UnityEngine.XR.Interaction.Toolkit.Inputs.XRTransformStabilizer on Right Controller Teleport Stabilized Origin
+Disabling UnityEngine.Transform on Right Controller Stabilized Attach
+Disabling UnityEngine.Transform on Locomotion
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.LocomotionMediator on Locomotion
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.XRBodyTransformer on Locomotion
+Disabling UnityEngine.Transform on Turn
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning.SnapTurnProvider on Turn
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Turning.ContinuousTurnProvider on Turn
+Disabling UnityEngine.Transform on Move
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider on Move
+Disabling UnityEngine.Transform on [Dynamic Move Provider] Combined Forward Source
+Disabling UnityEngine.Transform on Teleportation
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider on Teleportation
+Disabling UnityEngine.Transform on Climb
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbProvider on Climb
+Disabling UnityEngine.Transform on Climb Teleport
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbTeleportInteractor on Climb Teleport
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ClimbTeleportDestinationIndicator on Climb Teleport
+Disabling UnityEngine.Transform on [Climb Teleport] Attach
+Disabling UnityEngine.Transform on man
+Disabling UnityEngine.Animator on man
+Disabling UnityEngine.Transform on man
+Disabling UnityEngine.Transform on Root
+Disabling UnityEngine.Transform on pelvis
+Disabling UnityEngine.Transform on spine_01
+Disabling UnityEngine.Transform on spine_02
+Disabling UnityEngine.Transform on spine_03
+Disabling UnityEngine.Transform on clavicle_l
+Disabling UnityEngine.Transform on upperarm_l
+Disabling UnityEngine.Transform on lowerarm_l
+Disabling UnityEngine.Transform on hand_l
+Disabling UnityEngine.Transform on index_01_l
+Disabling UnityEngine.Transform on index_02_l
+Disabling UnityEngine.Transform on index_03_l
+Disabling UnityEngine.Transform on middle_01_l
+Disabling UnityEngine.Transform on middle_02_l
+Disabling UnityEngine.Transform on middle_03_l
+Disabling UnityEngine.Transform on pinky_01_l
+Disabling UnityEngine.Transform on pinky_02_l
+Disabling UnityEngine.Transform on pinky_03_l
+Disabling UnityEngine.Transform on ring_01_l
+Disabling UnityEngine.Transform on ring_02_l
+Disabling UnityEngine.Transform on ring_03_l
+Disabling UnityEngine.Transform on thumb_01_l
+Disabling UnityEngine.Transform on thumb_02_l
+Disabling UnityEngine.Transform on thumb_03_l
+Disabling UnityEngine.Transform on clavicle_r
+Disabling UnityEngine.Transform on upperarm_r
+Disabling UnityEngine.Transform on lowerarm_r
+Disabling UnityEngine.Transform on hand_r
+Disabling UnityEngine.Transform on index_01_r
+Disabling UnityEngine.Transform on index_02_r
+Disabling UnityEngine.Transform on index_03_r
+Disabling UnityEngine.Transform on middle_01_r
+Disabling UnityEngine.Transform on middle_02_r
+Disabling UnityEngine.Transform on middle_03_r
+Disabling UnityEngine.Transform on pinky_01_r
+Disabling UnityEngine.Transform on pinky_02_r
+Disabling UnityEngine.Transform on pinky_03_r
+Disabling UnityEngine.Transform on ring_01_r
+Disabling UnityEngine.Transform on ring_02_r
+Disabling UnityEngine.Transform on ring_03_r
+Disabling UnityEngine.Transform on thumb_01_r
+Disabling UnityEngine.Transform on thumb_02_r
+Disabling UnityEngine.Transform on thumb_03_r
+Disabling UnityEngine.Transform on neck_01
+Disabling UnityEngine.Transform on head
+Disabling UnityEngine.Transform on thigh_l
+Disabling UnityEngine.Transform on calf_l
+Disabling UnityEngine.Transform on foot_l
+Disabling UnityEngine.Transform on ball_l
+Disabling UnityEngine.Transform on thigh_r
+Disabling UnityEngine.Transform on calf_r
+Disabling UnityEngine.Transform on foot_r
+Disabling UnityEngine.Transform on ball_r
+Disabling UnityEngine.Transform on man-base
+Disabling UnityEngine.Transform on man-eyebrow010
+Disabling UnityEngine.Transform on man-low_poly
+Disabling UnityEngine.Transform on man-male_casualsuit06
+Disabling UnityEngine.Transform on man-shoes04
+Disabling UnityEngine.Transform on man-short02
+Disabling UnityEngine.Transform on man-teeth_base
+Disabling UnityEngine.Transform on Trackables
+=== Network Log Start ===
+Disabled Camera and AudioListener on Main Camera
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.LocomotionMediator on Locomotion
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider on Move
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider on Teleportation
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbProvider on Climb
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbTeleportInteractor on Climb Teleport
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ClimbTeleportDestinationIndicator on Climb Teleport
+Disabling UnityEngine.Animator on man
+=== Network Log Start ===
+Disabled Camera and AudioListener on Main Camera
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.LocomotionMediator on Locomotion
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider on Move
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider on Teleportation
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbProvider on Climb
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbTeleportInteractor on Climb Teleport
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ClimbTeleportDestinationIndicator on Climb Teleport
+Disabling UnityEngine.Animator on man
+=== Network Log Start ===
+Disabled Camera and AudioListener on Main Camera
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.LocomotionMediator on Locomotion
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.DynamicMoveProvider on Move
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Teleportation.TeleportationProvider on Teleportation
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbProvider on Climb
+Disabling UnityEngine.XR.Interaction.Toolkit.Locomotion.Climbing.ClimbTeleportInteractor on Climb Teleport
+Disabling UnityEngine.XR.Interaction.Toolkit.Samples.StarterAssets.ClimbTeleportDestinationIndicator on Climb Teleport
+Disabling UnityEngine.Animator on man

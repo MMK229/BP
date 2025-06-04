@@ -35718,13 +35718,9 @@ MonoBehaviour:
   syncMode: 0
   syncInterval: 0
   availableTracks:
-  - trackName: Horseshit
-    audioClip: {fileID: 8300000, guid: 651aa4b8697c72547a01ec51553ed09b, type: 3}
-    audioFilePath: music/05 Horseshit On Route 66.mp3
-  - trackName: Never Gonna Give You Up
-    audioClip: {fileID: 8300000, guid: 310d3dc8f2dd9a347862209ad4948ec7, type: 3}
-    audioFilePath: music/Rick Astley - Never Gonna Give You Up (Official Music Video)
-      - Rick Astley.mp3
+  - trackName: Test
+    audioClip: {fileID: 8300000, guid: 97492064b5367b647a9e72ebf62a2859, type: 3}
+    audioFilePath: music/Cinelax.mp3
   musicVolume: 50
   publishVolume: 50
   playoutVolume: 50
@@ -39885,6 +39881,10 @@ PrefabInstance:
     - target: {fileID: 6797478251595424136, guid: 85510d6b102d0ca4fb50e30f730bcc8e, type: 3}
       propertyPath: m_Name
       value: camera
+      objectReference: {fileID: 0}
+    - target: {fileID: 7630022462605311073, guid: 85510d6b102d0ca4fb50e30f730bcc8e, type: 3}
+      propertyPath: syncDirection
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
