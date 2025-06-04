@@ -1,0 +1,88 @@
+.banner {
+  padding: 0;
+  background-color: #343a40;
+  color: white;
+}
+
+.banner-text {
+  padding: 12px 20px;
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+#join-form {
+  margin-top: 10px;
+}
+
+.tips {
+  font-size: 12px;
+  margin-bottom: 2px;
+  color: gray;
+}
+
+.join-info-text {
+  margin-bottom: 2px;
+  font-weight: bold;
+}
+
+input {
+  width: 100%;
+  margin-bottom: 2px;
+  padding: 8px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+}
+
+/* Video grid layout */
+.video-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 15px;
+  width: 100%;
+}
+
+.video-container {
+  width: 100%;
+  text-align: center;
+}
+
+.player {
+  width: 100%;
+  aspect-ratio: 4/3;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  margin: 0 auto;
+}
+
+.player-name {
+  margin: 8px 0;
+  font-weight: bold;
+  text-align: center;
+}
+
+#success-alert, #success-alert-with-token {
+  display: none;
+}
+
+.button-group button {
+  margin-right: 10px;
+  margin-top: 15px;
+  padding: 8px 16px;
+}
+
+#camera-status {
+  font-size: 1.1rem;
+}
+
+@media (max-width: 768px) {
+  .video-grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+}
+
+@media (max-width: 576px) {
+  .video-grid {
+    grid-template-columns: 1fr;
+  }
+}
